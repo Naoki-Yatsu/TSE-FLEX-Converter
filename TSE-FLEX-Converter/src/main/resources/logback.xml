@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+
+    <!-- <property name="VAR_BASE" value="/var/opt/app/tse-flex-converter" /> -->
+    <property name="VAR_BASE" value="." />
+    <property name="LOG_HOME" value="${VAR_BASE}/logs" />
+    <property name="LOG_HISTORTY" value="${VAR_BASE}/logs/history" />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Root log -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <append>true</append>
+        <file>${LOG_HOME}/root.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HISTORTY}/root.log.%d{yyyy-MM-dd}.zip</fileNamePattern>
+            <maxHistory>5</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Error log -->
+    <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <append>true</append>
+        <file>${LOG_HOME}/error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HISTORTY}/error.log.%d{yyyy-MM-dd}.zip</fileNamePattern>
+            <maxHistory>5</maxHistory>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>error</level>
+        </filter>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="DEBUG">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="FILE" />
+        <appender-ref ref="ERROR" />
+    </root>
+
+</configuration>
+
