@@ -8,7 +8,7 @@ import java.util.Optional;
 
 import ny2.flex.data.Data;
 import ny2.flex.data.MarketDepth;
-import ny2.flex.kdb.KdbDao;
+import ny2.flex.database.OutputDao;
 import ny2.flex.message.Message;
 import ny2.flex.message.MessageBundle;
 
@@ -25,14 +25,14 @@ public class BoardManagerImpl implements BoardManager {
     // //////////////////////////////////////
 
     @Autowired
-    @Qualifier("KdbDao")
-    private KdbDao kdbdao;
+    @Qualifier("CsvDao")
+    private OutputDao outputDao;
 
     @Value("${board.maxdepth}")
     private int maxDepth;
 
     @Value("${board.remove.ce.MarketDepth}")
-    private boolean removeContinuousExecutionzMarketDepth;
+    private boolean removeContinuousExecutionMarketDepth;
 
     /** Board Map. Key=issueCode */
     private Map<String, Board> boardMap;
@@ -77,13 +77,13 @@ public class BoardManagerImpl implements BoardManager {
 
         // create board is not exist
         if (board == null) {
-            board = new Board(issueCode, bundle.getIssueClassificationType(), maxDepth, removeContinuousExecutionzMarketDepth);
+            board = new Board(issueCode, bundle.getIssueClassificationType(), maxDepth, bundle.isIntegerPrice(), removeContinuousExecutionMarketDepth);
             boardMap.put(issueCode, board);
         }
 
         // execute message
         List<Data> dataList = board.updateBoard(bundle);
-        kdbdao.insertList(dataList);
+        outputDao.insertList(dataList);
     }
 
     /**
@@ -132,7 +132,7 @@ public class BoardManagerImpl implements BoardManager {
                 dataList.add(board.changeDateWithCreationDepth());
             }
         }
-        kdbdao.insertList(dataList);
+        outputDao.insertList(dataList);
 
         // init all board
         initialize();

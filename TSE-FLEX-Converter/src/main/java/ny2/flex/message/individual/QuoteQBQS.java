@@ -71,9 +71,10 @@ public class QuoteQBQS extends Message {
     /** Bid/Ask Flag (Not in message) */
     private BidAsk bidAsk;
 
-    /** change flag. Set zero if not changed instead of space */
+    /** change flag. 1: change something, space: not changed */
     private int changeFlag;
 
+    /** Show price unit, value is between 1 and 4. If 4, price is integer */
     private int unitFlag;
 
     private String priceStr;

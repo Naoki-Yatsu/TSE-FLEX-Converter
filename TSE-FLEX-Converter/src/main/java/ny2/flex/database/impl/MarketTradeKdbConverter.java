@@ -1,10 +1,10 @@
-package ny2.flex.kdb.impl;
+package ny2.flex.database.impl;
 
 import java.util.List;
 
 import ny2.flex.data.Data;
 import ny2.flex.data.MarketTrade;
-import ny2.flex.kdb.KdbConverter;
+import ny2.flex.database.KdbConverter;
 
 import com.exxeleron.qjava.QTimespan;
 

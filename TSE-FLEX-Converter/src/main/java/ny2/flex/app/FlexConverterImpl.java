@@ -1,12 +1,11 @@
 package ny2.flex.app;
 
 import java.io.File;
-import java.time.LocalDate;
 
 import ny2.flex.board.BoardManager;
 import ny2.flex.common.SystemUtility;
+import ny2.flex.database.OutputDao;
 import ny2.flex.fileio.FlexFileReader;
-import ny2.flex.kdb.KdbDao;
 import ny2.flex.message.MessageBundle;
 import ny2.flex.message.MessageConverter;
 
@@ -30,15 +29,15 @@ public class FlexConverterImpl implements FlexConverter {
     private BoardManager boardManager;
 
     @Autowired
-    @Qualifier("KdbDao")
-    private KdbDao kdbdao;
+    @Qualifier("CsvDao")
+    private OutputDao outputDao;
 
     @Value("${file.read.size}")
     private int fileReadSize;
 
     /** Write kdb date to disk in this frequency */
-    @Value("${kdb.write.frequency}")
-    private int kdbWriteFreq;
+    @Value("${disk.write.frequency}")
+    private int diskWriteFreq;
 
     // //////////////////////////////////////
     // Constructor
@@ -55,7 +54,8 @@ public class FlexConverterImpl implements FlexConverter {
 
                 FlexFileReader fileReader = new FlexFileReader(file, fileReadSize);
                 fileReader.openReader();
-                LocalDate targetDate = fileReader.getDate();
+                // set date to dao
+                outputDao.setTargetDate(fileReader.getDate());
 
                 int counter = 0;
                 while (!fileReader.isEnd()) {
@@ -71,13 +71,13 @@ public class FlexConverterImpl implements FlexConverter {
                     }
 
                     // wWite date on disk, prevent to memory over in kdb
-                    if (counter % kdbWriteFreq == kdbWriteFreq - 1) {
-                        while (kdbdao.isWriting()) {
+                    counter++;
+                    if (counter % diskWriteFreq == 0) {
+                        while (outputDao.isWriting()) {
                             SystemUtility.waitSleep(2000);
                         }
-                        kdbdao.wirteSplayedTables(targetDate);
+                        outputDao.wirteToDisk();
                     }
-                    counter++;
                 }
 
                 // Close Reader
@@ -86,13 +86,13 @@ public class FlexConverterImpl implements FlexConverter {
                 // Change Date
                 boardManager.changeDate();
                 // Write data on disk
-                while (kdbdao.isWriting()) {
+                while (outputDao.isWriting()) {
                     SystemUtility.waitSleep(1000);
                 }
                 // wait. but maybe no problem with nowait.
                 logger.info("Wait 10 secs before change date.");
                 SystemUtility.waitSleep(10000);
-                kdbdao.wirteSplayedTables(targetDate);
+                outputDao.wirteToDisk();
 
                 // gc just in case...
                 System.gc();
@@ -101,7 +101,7 @@ public class FlexConverterImpl implements FlexConverter {
 
             logger.info("Wait 10 secs before finalize.");
             SystemUtility.waitSleep(10000);
-            kdbdao.finalizeSplayedTables();
+            outputDao.finalizeData();
 
         } catch (Exception e) {
             logger.error("", e);

@@ -42,10 +42,13 @@ public class Board {
     private final IssueClassificationType issueClassificationType;
 
     /** Max depth for MarketDepth */
-    private final int MAX_DEPTH_OUTPUT;
+    private final int maxDepthOutput;
+
+    /** price is integer or not(include decimal number) */
+    private final boolean isIntegerPrice;
 
     /** In continuous execution, this prevent output MarketDepth. */
-    private boolean removeContinuousExecutionzMarketDepth;
+    private boolean removeContinuousExecutionMarketDepth;
 
     /** Last serial no */
     private long lastSerialNo;
@@ -91,11 +94,12 @@ public class Board {
     // Constructor
     // //////////////////////////////////////
 
-    public Board(String issueCode, IssueClassificationType issueClassificationType, int maxDepth, boolean removeContinuousExecutionzMarketDepth) {
+    public Board(String issueCode, IssueClassificationType issueClassificationType, int maxDepth, boolean isIntegerPrice, boolean removeContinuousExecutionMarketDepth) {
         this.issueCode = issueCode;
         this.issueClassificationType = issueClassificationType;
-        this.MAX_DEPTH_OUTPUT = maxDepth;
-        this.removeContinuousExecutionzMarketDepth = removeContinuousExecutionzMarketDepth;
+        this.maxDepthOutput = maxDepth;
+        this.isIntegerPrice = isIntegerPrice;
+        this.removeContinuousExecutionMarketDepth = removeContinuousExecutionMarketDepth;
     }
 
     // //////////////////////////////////////
@@ -124,7 +128,7 @@ public class Board {
             List<Data> dataList = updateBoardInternal(bundle);
 
             // if NOT in continuousExecution, add MarketDepth
-            if ((!continuousExecution || !removeContinuousExecutionzMarketDepth) && lastMarketDepth != null) {
+            if ((!continuousExecution || !removeContinuousExecutionMarketDepth) && lastMarketDepth != null) {
                 dataList.add(lastMarketDepth);
             }
 
@@ -390,6 +394,7 @@ public class Board {
         currentPrice.setState(currentPrice1P.getState());
         currentPrice.setUpdateNo(lastIssueUpdateNo);
         currentPrice.setSerialNo(lastSerialNo);
+        currentPrice.setIntegerPrice(isIntegerPrice);
 
         return currentPrice;
     }
@@ -467,6 +472,8 @@ public class Board {
         marketTrade.setUpdateNo(lastIssueUpdateNo);
         marketTrade.setSerialNo(lastSerialNo);
 
+        marketTrade.setIntegerPrice(isIntegerPrice);
+
         return marketTrade;
     }
 
@@ -514,6 +521,8 @@ public class Board {
         marketDepth.setUpdateNo(lastIssueUpdateNo);
         marketDepth.setSerialNo(lastSerialNo);
 
+        marketDepth.setIntegerPrice(isIntegerPrice);
+
         return marketDepth;
     }
 
@@ -537,8 +546,8 @@ public class Board {
         }
 
         // Size limit of max depth
-        if (depth >= MAX_DEPTH_OUTPUT) {
-            depth = MAX_DEPTH_OUTPUT;
+        if (depth >= maxDepthOutput) {
+            depth = maxDepthOutput;
         }
 
         // define value arrays
@@ -565,7 +574,7 @@ public class Board {
             index++;
 
             // Limit of max depth
-            if (index >= MAX_DEPTH_OUTPUT) {
+            if (index >= maxDepthOutput) {
                 break;
             }
         }

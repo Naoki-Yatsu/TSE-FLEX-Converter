@@ -1,4 +1,4 @@
-package ny2.flex.kdb;
+package ny2.flex.database;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

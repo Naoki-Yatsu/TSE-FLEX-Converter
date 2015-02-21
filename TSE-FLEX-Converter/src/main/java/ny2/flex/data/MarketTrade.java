@@ -7,6 +7,10 @@ import ny2.flex.common.Side;
 
 public class MarketTrade extends Data {
 
+    // //////////////////////////////////////
+    // Field
+    // //////////////////////////////////////
+
     private LocalTime time;
     private String sym;
 
@@ -23,6 +27,13 @@ public class MarketTrade extends Data {
     private int updateNo;
     private long serialNo;
 
+    // not output
+    private boolean isIntegerPrice;
+
+    // //////////////////////////////////////
+    // Method
+    // //////////////////////////////////////
+
     @Override
     public DataType getDataType() {
         return DataType.MarketTrade;
@@ -34,7 +45,7 @@ public class MarketTrade extends Data {
         sj.add(time.toString())
                 .add(sym)
                 .add(side.name())
-                .add(String.valueOf(price))
+                .add(convertPriceString(price))
                 .add(String.valueOf(quantity))
                 .add(String.valueOf(totalQuantity))
                 .add(String.valueOf(totalTurnover))
@@ -53,6 +64,14 @@ public class MarketTrade extends Data {
                 .add("totalTurnover")
                 .add("updateNo");
         return sj.toString();
+    }
+
+    private String convertPriceString(double price) {
+        if (isIntegerPrice) {
+            return String.valueOf((int) price);
+        } else {
+            return String.valueOf(price);
+        }
     }
 
     // //////////////////////////////////////
@@ -131,6 +150,12 @@ public class MarketTrade extends Data {
         this.serialNo = serialNo;
     }
 
+    public boolean isIntegerPrice() {
+        return isIntegerPrice;
+    }
 
+    public void setIntegerPrice(boolean isIntegerPrice) {
+        this.isIntegerPrice = isIntegerPrice;
+    }
 
 }

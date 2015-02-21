@@ -15,16 +15,23 @@ public abstract class Data {
     }
 
     /**
+     * Data Type
+     * @return
+     */
+    public abstract DataType getDataType();
+
+    /**
+     * Get Symbol
+     * @return
+     */
+    public abstract String getSym();
+
+
+    /**
      * Output data as csv format.
      * @return
      */
     public abstract String csvOut();
 
-
-    /**
-     * Data Type
-     * @return
-     */
-    public abstract DataType getDataType();
 
 }

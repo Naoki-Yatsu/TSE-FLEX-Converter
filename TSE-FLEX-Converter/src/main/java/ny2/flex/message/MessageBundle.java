@@ -136,4 +136,29 @@ public class MessageBundle {
         return allMessages;
     }
 
+    /**
+     * If price of the code is integer, return true.
+     * This is defined by unitFlag == 4 in message.
+     *
+     * @return
+     */
+    public boolean isIntegerPrice() {
+        if (quoteMessages.size() != 0) {
+            for (QuoteQBQS quoteQBQS : quoteMessages) {
+                if(quoteQBQS.getUnitFlag() != 0) {
+                    return quoteQBQS.getUnitFlag() == 4;
+                }
+            }
+        }
+        if (currentPrice1P != null) {
+            return currentPrice1P.getUnit() == 4;
+        }
+        // if unknown return false.
+        return false;
+    }
+
+    // //////////////////////////////////////
+    // Getters & Setters
+    // //////////////////////////////////////
+
 }

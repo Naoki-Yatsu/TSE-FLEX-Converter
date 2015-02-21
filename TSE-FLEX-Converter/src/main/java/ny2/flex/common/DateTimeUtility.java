@@ -32,6 +32,8 @@ public class DateTimeUtility {
 
     public static final DateTimeFormatter FIX_DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HH:mm:ss.SSS");
 
+    public static final DateTimeFormatter SIMPLE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+
     // //////////////////////////////////////
     // Method
     // //////////////////////////////////////

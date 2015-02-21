@@ -8,6 +8,10 @@ import ny2.flex.message.IssueClassificationType;
 
 public class MarketDepth extends Data {
 
+    // //////////////////////////////////////
+    // Field
+    // //////////////////////////////////////
+
     private LocalTime time;
     private String sym;
     private IssueClassificationType classification;
@@ -33,6 +37,13 @@ public class MarketDepth extends Data {
     private int updateNo;
     private long serialNo;
 
+    // not output
+    private boolean isIntegerPrice;
+
+    // //////////////////////////////////////
+    // Method
+    // //////////////////////////////////////
+
     @Override
     public DataType getDataType() {
         return DataType.MarketDepth;
@@ -43,8 +54,8 @@ public class MarketDepth extends Data {
         StringJoiner sj = new StringJoiner(getCsvSeparator());
         sj.add(time.toString())
                 .add(sym)
-                .add(String.valueOf(bidPrice))
-                .add(String.valueOf(askPrice))
+                .add(convertPriceString(bidPrice))
+                .add(convertPriceString(askPrice))
                 .add(String.valueOf(bidQuantity))
                 .add(String.valueOf(askQuantity))
                 .add(String.valueOf(bidNumOrder))
@@ -66,8 +77,8 @@ public class MarketDepth extends Data {
         StringJoiner sj = new StringJoiner(getCsvSeparator());
         sj.add(time.toString())
                 .add(sym)
-                .add(String.valueOf(bidPrice))
-                .add(String.valueOf(askPrice))
+                .add(convertPriceString(bidPrice))
+                .add(convertPriceString(askPrice))
                 .add(String.valueOf(bidQuantity))
                 .add(String.valueOf(askQuantity))
                 // Others
@@ -116,7 +127,7 @@ public class MarketDepth extends Data {
     private String convertListToString(double[] values) {
         StringJoiner sj = new StringJoiner(LIST_SEPARATOR);
         for (double d : values) {
-            sj.add(String.valueOf(d));
+            sj.add(convertPriceString(d));
         }
         return sj.toString();
     }
@@ -127,6 +138,14 @@ public class MarketDepth extends Data {
             sj.add(String.valueOf(l));
         }
         return sj.toString();
+    }
+
+    private String convertPriceString(double price) {
+        if (isIntegerPrice) {
+            return String.valueOf((int) price);
+        } else {
+            return String.valueOf(price);
+        }
     }
 
     // //////////////////////////////////////
@@ -241,5 +260,10 @@ public class MarketDepth extends Data {
     public void setSerialNo(long serialNo) {
         this.serialNo = serialNo;
     }
-
+    public boolean isIntegerPrice() {
+        return isIntegerPrice;
+    }
+    public void setIntegerPrice(boolean isIntegerPrice) {
+        this.isIntegerPrice = isIntegerPrice;
+    }
 }

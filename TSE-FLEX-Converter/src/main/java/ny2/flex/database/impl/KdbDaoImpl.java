@@ -1,9 +1,11 @@
-package ny2.flex.kdb.impl;
+package ny2.flex.database.impl;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -16,8 +18,8 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import ny2.flex.data.Data;
-import ny2.flex.kdb.KdbConverter;
-import ny2.flex.kdb.KdbDao;
+import ny2.flex.data.MarketDepth;
+import ny2.flex.database.KdbConverter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +29,8 @@ import org.springframework.stereotype.Repository;
 import com.exxeleron.qjava.QBasicConnection;
 import com.exxeleron.qjava.QException;
 
-@Repository("KdbDao")
-public class KdbDaoImpl implements KdbDao {
+//@Repository("KdbDao")
+public class KdbDaoImpl extends AbstractDao {
 
     // //////////////////////////////////////
     // Field
@@ -36,19 +38,6 @@ public class KdbDaoImpl implements KdbDao {
 
     // Logger
     private final Logger logger = LoggerFactory.getLogger(getClass());
-
-    // output target table
-    @Value("${output.MarketDepth}")
-    private boolean outMarketDepth;
-
-    @Value("${output.MarketBest}")
-    private boolean outMarketBest;
-
-    @Value("${output.MarketTrade}")
-    private boolean outMarketTrade;
-
-    @Value("${output.CurrentPrice}")
-    private boolean outCurrentPrice;
 
     // connection parameter
     @Value("${kdb.host}")
@@ -63,6 +52,10 @@ public class KdbDaoImpl implements KdbDao {
     @Value("${kdb.password}")
     private String password;
 
+    // output parameter
+    @Value("${kdb.table.split.code}")
+    private boolean splitByCode;
+
     /** insert function */
     private static final String Q_INSERT = "insert";
     private static final String Q_WRITE = "writeAndClear";
@@ -76,9 +69,6 @@ public class KdbDaoImpl implements KdbDao {
 
     /** Executer for Insert data to database */
     private ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
-
-    /** Data Storing Queue */
-    private BlockingQueue<Data> dataQueue = new LinkedBlockingQueue<>(1000000);
 
     /** Lock for kdb writing */
     private Lock lock = new ReentrantLock();
@@ -122,51 +112,60 @@ public class KdbDaoImpl implements KdbDao {
     // Method
     // //////////////////////////////////////
 
-    @Override
-    public void insertList(List<Data> dataList) {
-        for (Data data : dataList) {
-            try {
-                dataQueue.put(data);
-            } catch (InterruptedException e) {
-                logger.error("");
-            }
-        }
-    }
-
     private void insertList(List<Data> dataList, KdbConverter converter) {
         lock.lock();
         executeQuery(Q_INSERT, converter.getTableName(), converter.convert(dataList));
         lock.unlock();
     }
 
+    private void insertListSplitDepth(List<Data> dataList, KdbConverter converter) {
+        // create list split by code
+        Map<String, List<Data>> symDepthMap = new HashMap<>(10000);
+        for (Data data : dataList) {
+            MarketDepth depth = (MarketDepth)data;
+            // add depth to target list
+            List<Data> depthList = symDepthMap.get(depth.getSym());
+            if (depthList == null) {
+                depthList = new ArrayList<>();
+                symDepthMap.put(depth.getSym(), depthList);
+            }
+            depthList.add(depth);
+        }
+        lock.lock();
+        for (Entry<String, List<Data>> entry : symDepthMap.entrySet()) {
+            executeQuery(Q_INSERT, converter.getTableName() + "_" + entry.getKey(), converter.convert(dataList));
+        }
+        lock.unlock();
+    }
+
     @Override
-    public void wirteSplayedTables(LocalDate localDate) {
+    public void wirteToDisk() {
         lock.lock();
 
-        logger.info("Write splayed table. date = {}", localDate.toString());
+        logger.info("Write splayed table. date = {}", targetDate.toString());
 
         if (outMarketDepth) {
             logger.info("Write splayed table. {}", marketDepthKdbConverter.getTableName());
-            executeQuery(Q_WRITE, KdbConverter.kdbValue(localDate), KdbConverter.kdbValueList(marketDepthKdbConverter.getTableName()));
+            executeQuery(Q_WRITE, KdbConverter.kdbValue(targetDate), KdbConverter.kdbValueList(marketDepthKdbConverter.getTableName()));
         }
         if (outMarketBest) {
             logger.info("Write splayed table. {}", marketBestKdbConverter.getTableName());
-            executeQuery(Q_WRITE, KdbConverter.kdbValue(localDate), KdbConverter.kdbValueList(marketBestKdbConverter.getTableName()));
+            executeQuery(Q_WRITE, KdbConverter.kdbValue(targetDate), KdbConverter.kdbValueList(marketBestKdbConverter.getTableName()));
         }
         if (outMarketTrade) {
             logger.info("Write splayed table. {}", marketTradeKdbConverter.getTableName());
-            executeQuery(Q_WRITE, KdbConverter.kdbValue(localDate), KdbConverter.kdbValueList(marketTradeKdbConverter.getTableName()));
+            executeQuery(Q_WRITE, KdbConverter.kdbValue(targetDate), KdbConverter.kdbValueList(marketTradeKdbConverter.getTableName()));
         }
         if (outCurrentPrice) {
             logger.info("Write splayed table. {}", currentPriceKdbConverter.getTableName());
-            executeQuery(Q_WRITE, KdbConverter.kdbValue(localDate), KdbConverter.kdbValueList(currentPriceKdbConverter.getTableName()));
+            executeQuery(Q_WRITE, KdbConverter.kdbValue(targetDate), KdbConverter.kdbValueList(currentPriceKdbConverter.getTableName()));
         }
 
         lock.unlock();
     }
 
     @Override
-    public void finalizeSplayedTables() {
+    public void finalizeData() {
         lock.lock();
         logger.info("Finalize splayed table.");
         executeQuery(Q_FINALIZE);
@@ -275,22 +274,32 @@ public class KdbDaoImpl implements KdbDao {
                         break;
                 }
             }
-
+            // MarketDepth & MarketBest
             if (!marketDepthList.isEmpty()) {
                 if (outMarketDepth) {
-                    insertList(marketDepthList, marketDepthKdbConverter);
+                    if (splitByCode) {
+                        insertListSplitDepth(marketDepthList, marketDepthKdbConverter);
+                    } else {
+                        insertList(marketDepthList, marketDepthKdbConverter);
+                    }
                 }
                 if (outMarketBest) {
-                    insertList(marketDepthList, marketBestKdbConverter);
+                    ArrayList<Data> marketBestList = new ArrayList<>(marketDepthList.size());
+                    // Check best price is updated.
+                    marketDepthList.stream()
+                            .filter(data -> marketBestManager.checkBestUpdated((MarketDepth)data))
+                            .forEach(data -> marketBestList.add(data));
+                    insertList(marketBestList, marketBestKdbConverter);
                 }
             }
+            // MarketTrade
             if (!marketTradeList.isEmpty() && outMarketTrade) {
                 insertList(marketTradeList, marketTradeKdbConverter);
             }
+            // CurrnetPrice
             if (!currentPriceList.isEmpty() && outCurrentPrice) {
                 insertList(currentPriceList, currentPriceKdbConverter);
             }
         }
     }
-
 }

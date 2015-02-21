@@ -5,6 +5,10 @@ import java.util.StringJoiner;
 
 public class CurrentPrice extends Data {
 
+    // //////////////////////////////////////
+    // Field
+    // //////////////////////////////////////
+
     private LocalTime time;
     private String sym;
 
@@ -14,6 +18,13 @@ public class CurrentPrice extends Data {
     // Others
     private int updateNo;
     private long serialNo;
+
+    // not output
+    private boolean isIntegerPrice;
+
+    // //////////////////////////////////////
+    // Method
+    // //////////////////////////////////////
 
     @Override
     public DataType getDataType() {
@@ -25,7 +36,7 @@ public class CurrentPrice extends Data {
         StringJoiner sj = new StringJoiner(getCsvSeparator());
         sj.add(time.toString())
                 .add(sym)
-                .add(String.valueOf(price))
+                .add(convertPriceString(price))
                 .add(String.valueOf(updateNo));
         return sj.toString();
     }
@@ -37,6 +48,14 @@ public class CurrentPrice extends Data {
                 .add("price")
                 .add("updateNo");
         return sj.toString();
+    }
+
+    private String convertPriceString(double price) {
+        if (isIntegerPrice) {
+            return String.valueOf((int) price);
+        } else {
+            return String.valueOf(price);
+        }
     }
 
     // //////////////////////////////////////
@@ -79,7 +98,11 @@ public class CurrentPrice extends Data {
     public void setSerialNo(long serialNo) {
         this.serialNo = serialNo;
     }
-
-
+    public boolean isIntegerPrice() {
+        return isIntegerPrice;
+    }
+    public void setIntegerPrice(boolean isIntegerPrice) {
+        this.isIntegerPrice = isIntegerPrice;
+    }
 
 }

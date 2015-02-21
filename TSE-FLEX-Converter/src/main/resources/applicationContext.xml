@@ -9,6 +9,6 @@
     <context:annotation-config />
     <context:component-scan base-package="ny2.flex.*" />
 
-    <context:property-placeholder ignore-unresolvable="true" location="classpath:config.properties" />
+    <context:property-placeholder ignore-unresolvable="true" location="file:etc/config.properties" />
 
 </beans>
