@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import ny2.flex.common.DateTimeUtility;
-import ny2.flex.data.Data;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import ny2.flex.common.DateTimeUtility;
+import ny2.flex.data.Data;
 
 /**
  * CSV file writer
@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
  * filename rule sample
  * Default : MarketDepth.csv
  * Split Code : MarketDepth_1234.csv
- * Split Data : MarketDepth_20140123.csv
+ * Split Date : MarketDepth_20140123.csv
  * Split Both : MarketDepth_1234_20140123.csv
  */
 public class CsvFileWriter {
@@ -81,6 +81,13 @@ public class CsvFileWriter {
         this.header = header;
         this.dateColumValue = dateColumValue;
 
+        // Check path dir is exist or not
+        File dir = new File(path);
+        if (!dir.exists()) {
+            logger.info("Create directory : {}", dir.getPath());
+            dir.mkdirs();
+        }
+
         if (splitByCode) {
             writerMap = new HashMap<>();
         } else {
@@ -98,8 +105,9 @@ public class CsvFileWriter {
      * @throws IOException
      */
     private void createCommonWriter() throws IOException {
-        logger.info("Open writer.{}", filenameBase);
-        this.commonWriter = new BufferedWriter(new FileWriter(path + filenameBase + suffixDate + ".csv"));
+        String filename = path + filenameBase + suffixDate + ".csv";
+        logger.info("Open writer. {}", filename);
+        this.commonWriter = new BufferedWriter(new FileWriter(filename));
         if (outHeader) {
             commonWriter.write(header);
             commonWriter.newLine();
@@ -112,8 +120,9 @@ public class CsvFileWriter {
      * @throws IOException
      */
     private BufferedWriter createWriter(String sym) throws IOException {
-        logger.info("Open writer. {}_{}", filenameBase, sym);
-        BufferedWriter writer = new BufferedWriter(new FileWriter(path + filenameBase + "_" + sym + suffixDate + ".csv"));
+        String filename = path + filenameBase + "_" + sym + suffixDate + ".csv";
+        logger.info("Open writer. {}", filename);
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
         writerMap.put(sym, writer);
         if (outHeader) {
             writer.write(header);
@@ -135,6 +144,7 @@ public class CsvFileWriter {
             } catch (IOException e) {
                 logger.error("Failed to close writer.", e);
             }
+            return;
         }
 
         // splitByCode

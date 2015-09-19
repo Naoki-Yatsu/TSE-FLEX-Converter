@@ -6,10 +6,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.StringJoiner;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -17,20 +18,26 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import ny2.flex.data.Data;
-import ny2.flex.data.MarketDepth;
-import ny2.flex.database.KdbConverter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Repository;
 
 import com.exxeleron.qjava.QBasicConnection;
 import com.exxeleron.qjava.QException;
 
-//@Repository("KdbDao")
-public class KdbDaoImpl extends AbstractDao {
+import ny2.flex.data.CurrentPrice;
+import ny2.flex.data.Data;
+import ny2.flex.data.IssueInformation;
+import ny2.flex.data.MarketDepth;
+import ny2.flex.data.MarketTrade;
+import ny2.flex.database.KdbConverter;
+import ny2.flex.database.KdbUtility;
+
+/**
+ * kdb dao
+ */
+//@Repository("KdbDao") -> xml
+public class KdbDao extends AbstractDao {
 
     // //////////////////////////////////////
     // Field
@@ -66,9 +73,11 @@ public class KdbDaoImpl extends AbstractDao {
     private MarketBestKdbConverter marketBestKdbConverter = new MarketBestKdbConverter();
     private MarketTradeKdbConverter marketTradeKdbConverter = new MarketTradeKdbConverter();
     private CurrentPriceKdbConverter currentPriceKdbConverter = new CurrentPriceKdbConverter();
+    private IssueInformationKdbConverter issueInformationKdbConverter = new IssueInformationKdbConverter();
 
     /** Executer for Insert data to database */
-    private ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+    // private ScheduledThreadPoolExecutor scheduledExecutor = (ScheduledThreadPoolExecutor) Executors.newSingleThreadScheduledExecutor();
+    private ScheduledThreadPoolExecutor scheduledExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
 
     /** Lock for kdb writing */
     private Lock lock = new ReentrantLock();
@@ -82,15 +91,14 @@ public class KdbDaoImpl extends AbstractDao {
     // Constructor
     // //////////////////////////////////////
 
-    public KdbDaoImpl() {
+    public KdbDao() {
         logger.info("Create instance.");
     }
 
     @PostConstruct
     private void init() {
         logger.info("PostConstruct instance.");
-
-        scheduledExecutor.scheduleWithFixedDelay(new BatchInsertWorker(), 0, 1000, TimeUnit.MILLISECONDS);
+        scheduledExecutor.scheduleWithFixedDelay(new BatchInsertWorker(), 0, 200, TimeUnit.MILLISECONDS);
 
         // create connections
         for (int i = 0; i < CONNECTION_POOL_SIZE; i++) {
@@ -112,19 +120,18 @@ public class KdbDaoImpl extends AbstractDao {
     // Method
     // //////////////////////////////////////
 
-    private void insertList(List<Data> dataList, KdbConverter converter) {
+    private <T extends Data> void insertList(List<T> dataList, KdbConverter<T> converter) {
         lock.lock();
         executeQuery(Q_INSERT, converter.getTableName(), converter.convert(dataList));
         lock.unlock();
     }
 
-    private void insertListSplitDepth(List<Data> dataList, KdbConverter converter) {
+    private void insertListSplitDepth(List<MarketDepth> dataList, MarketDepthKdbConverter converter) {
         // create list split by code
-        Map<String, List<Data>> symDepthMap = new HashMap<>(10000);
-        for (Data data : dataList) {
-            MarketDepth depth = (MarketDepth)data;
+        Map<String, List<MarketDepth>> symDepthMap = new HashMap<>(10000);
+        for (MarketDepth depth : dataList) {
             // add depth to target list
-            List<Data> depthList = symDepthMap.get(depth.getSym());
+            List<MarketDepth> depthList = symDepthMap.get(depth.getSym());
             if (depthList == null) {
                 depthList = new ArrayList<>();
                 symDepthMap.put(depth.getSym(), depthList);
@@ -132,7 +139,7 @@ public class KdbDaoImpl extends AbstractDao {
             depthList.add(depth);
         }
         lock.lock();
-        for (Entry<String, List<Data>> entry : symDepthMap.entrySet()) {
+        for (Entry<String, List<MarketDepth>> entry : symDepthMap.entrySet()) {
             executeQuery(Q_INSERT, converter.getTableName() + "_" + entry.getKey(), converter.convert(dataList));
         }
         lock.unlock();
@@ -146,19 +153,23 @@ public class KdbDaoImpl extends AbstractDao {
 
         if (outMarketDepth) {
             logger.info("Write splayed table. {}", marketDepthKdbConverter.getTableName());
-            executeQuery(Q_WRITE, KdbConverter.kdbValue(targetDate), KdbConverter.kdbValueList(marketDepthKdbConverter.getTableName()));
+            executeQuery(Q_WRITE, KdbUtility.kdbValue(targetDate), KdbUtility.kdbValueCharList(marketDepthKdbConverter.getTableName()));
         }
         if (outMarketBest) {
             logger.info("Write splayed table. {}", marketBestKdbConverter.getTableName());
-            executeQuery(Q_WRITE, KdbConverter.kdbValue(targetDate), KdbConverter.kdbValueList(marketBestKdbConverter.getTableName()));
+            executeQuery(Q_WRITE, KdbUtility.kdbValue(targetDate), KdbUtility.kdbValueCharList(marketBestKdbConverter.getTableName()));
         }
         if (outMarketTrade) {
             logger.info("Write splayed table. {}", marketTradeKdbConverter.getTableName());
-            executeQuery(Q_WRITE, KdbConverter.kdbValue(targetDate), KdbConverter.kdbValueList(marketTradeKdbConverter.getTableName()));
+            executeQuery(Q_WRITE, KdbUtility.kdbValue(targetDate), KdbUtility.kdbValueCharList(marketTradeKdbConverter.getTableName()));
         }
         if (outCurrentPrice) {
             logger.info("Write splayed table. {}", currentPriceKdbConverter.getTableName());
-            executeQuery(Q_WRITE, KdbConverter.kdbValue(targetDate), KdbConverter.kdbValueList(currentPriceKdbConverter.getTableName()));
+            executeQuery(Q_WRITE, KdbUtility.kdbValue(targetDate), KdbUtility.kdbValueCharList(currentPriceKdbConverter.getTableName()));
+        }
+        if (outIssueInformation) {
+            logger.info("Write splayed table. {}", issueInformationKdbConverter.getTableName());
+            executeQuery(Q_WRITE, KdbUtility.kdbValue(targetDate), KdbUtility.kdbValueCharList(issueInformationKdbConverter.getTableName()));
         }
 
         lock.unlock();
@@ -174,8 +185,8 @@ public class KdbDaoImpl extends AbstractDao {
 
     @Override
     public boolean isWriting() {
-        if (dataQueue.size() > 0) {
-            logger.debug("Writing data. remain = {}", dataQueue.size());
+        if (dataQueue.size() > 0 || scheduledExecutor.getActiveCount() > 0) {
+            logger.debug("Writing data. queue = {}, active = {}", dataQueue.size(), scheduledExecutor.getActiveCount());
             return true;
         } else {
             return false;
@@ -187,13 +198,17 @@ public class KdbDaoImpl extends AbstractDao {
         try {
             qConnection.sync(query, parameters);
         } catch (Exception e) {
-            logger.error("Error in insert data. Reset connection just in case...", e);
+            StringJoiner sj = new StringJoiner(" ");
+            sj.add(query);
+            for (Object object : parameters) {
+                sj.add(object.toString());
+            }
+            logger.error("Error in insert data. Reset connection just in case...\n" + sj.toString(), e);
             try {
                 qConnection.reset();
             } catch (IOException | QException e1) {
                 logger.error("Error in reset connection", e);
             }
-            throw new RuntimeException(e);
         } finally {
             // return connection to queue
             connectionPool.add(qConnection);
@@ -255,20 +270,24 @@ public class KdbDaoImpl extends AbstractDao {
             dataQueue.drainTo(allDataList, queueSize);
 
             // each data list
-            List<Data> marketDepthList = new ArrayList<Data>();
-            List<Data> marketTradeList = new ArrayList<Data>();
-            List<Data> currentPriceList = new ArrayList<Data>();
+            List<MarketDepth> marketDepthList = new ArrayList<>();
+            List<MarketTrade> marketTradeList = new ArrayList<>();
+            List<CurrentPrice> currentPriceList = new ArrayList<>();
+            List<IssueInformation> issueInformationList = new ArrayList<>();
 
             for (Data data : allDataList) {
                 switch (data.getDataType()) {
                     case MarketDepth:
-                        marketDepthList.add(data);
+                        marketDepthList.add((MarketDepth) data);
                         break;
                     case MarketTrade:
-                        marketTradeList.add(data);
+                        marketTradeList.add((MarketTrade) data);
                         break;
                     case CurrentPrice:
-                        currentPriceList.add(data);
+                        currentPriceList.add((CurrentPrice) data);
+                        break;
+                    case IssueInformation:
+                        issueInformationList.add((IssueInformation) data);
                         break;
                     default:
                         break;
@@ -284,10 +303,10 @@ public class KdbDaoImpl extends AbstractDao {
                     }
                 }
                 if (outMarketBest) {
-                    ArrayList<Data> marketBestList = new ArrayList<>(marketDepthList.size());
+                    ArrayList<MarketDepth> marketBestList = new ArrayList<>(marketDepthList.size());
                     // Check best price is updated.
                     marketDepthList.stream()
-                            .filter(data -> marketBestManager.checkBestUpdated((MarketDepth)data))
+                            .filter(data -> marketBestManager.checkBestUpdated(data))
                             .forEach(data -> marketBestList.add(data));
                     insertList(marketBestList, marketBestKdbConverter);
                 }
@@ -299,6 +318,10 @@ public class KdbDaoImpl extends AbstractDao {
             // CurrnetPrice
             if (!currentPriceList.isEmpty() && outCurrentPrice) {
                 insertList(currentPriceList, currentPriceKdbConverter);
+            }
+            // IssueInformation
+            if (!issueInformationList.isEmpty() && outIssueInformation) {
+                insertList(issueInformationList, issueInformationKdbConverter);
             }
         }
     }

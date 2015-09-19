@@ -2,23 +2,19 @@ package ny2.flex.database.impl;
 
 import java.util.List;
 
-import ny2.flex.data.CurrentPrice;
-import ny2.flex.data.Data;
-import ny2.flex.database.KdbConverter;
-
 import com.exxeleron.qjava.QTimespan;
 
-public class CurrentPriceKdbConverter implements KdbConverter {
+import ny2.flex.data.CurrentPrice;
+import ny2.flex.database.KdbConverter;
+import ny2.flex.database.KdbUtility;
+
+public class CurrentPriceKdbConverter implements KdbConverter<CurrentPrice> {
 
     // //////////////////////////////////////
     // Field
     // //////////////////////////////////////
 
     private static final String TABLE_NAME = "CurrentPrice";
-
-    // //////////////////////////////////////
-    // Constructor
-    // //////////////////////////////////////
 
     // //////////////////////////////////////
     // Method
@@ -29,9 +25,8 @@ public class CurrentPriceKdbConverter implements KdbConverter {
         return TABLE_NAME;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <T extends Data> Object[] convert(List<T> dataList) {
+    public Object[] convert(List<CurrentPrice> dataList) {
         return convertInternal((List<CurrentPrice>) dataList);
     }
 
@@ -45,7 +40,7 @@ public class CurrentPriceKdbConverter implements KdbConverter {
     }
 
     @Override
-    public Object[] convert(Data data) {
+    public Object[] convert(CurrentPrice data) {
         KdbCurrentPrice kdbData = new KdbCurrentPrice(1);
         kdbData.addData(0, (CurrentPrice) data);
         return kdbData.toKdbDataObject();
@@ -91,11 +86,11 @@ public class CurrentPriceKdbConverter implements KdbConverter {
 
         public void addData(int rowIndex, CurrentPrice data) {
             // head
-            timeArray[rowIndex] = KdbConverter.kdbValueTimespan(data.getTime());
-            symArray[rowIndex] = KdbConverter.kdbValue(data.getSym());
+            timeArray[rowIndex] = KdbUtility.kdbValueTimespan(data.getTime());
+            symArray[rowIndex] = KdbUtility.kdbValue(data.getSym());
             // Data
             priceArray[rowIndex] = data.getPrice();
-            stateArray[rowIndex] = KdbConverter.kdbValue(data.getState());
+            stateArray[rowIndex] = KdbUtility.kdbValue(data.getState());
             // Others
             updateNoArray[rowIndex] = data.getUpdateNo();
             serialNoArray[rowIndex] = data.getSerialNo();

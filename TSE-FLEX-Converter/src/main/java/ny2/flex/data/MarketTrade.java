@@ -3,8 +3,10 @@ package ny2.flex.data;
 import java.time.LocalTime;
 import java.util.StringJoiner;
 
+import lombok.ToString;
 import ny2.flex.common.Side;
 
+@ToString
 public class MarketTrade extends Data {
 
     // //////////////////////////////////////

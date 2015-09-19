@@ -3,6 +3,9 @@ package ny2.flex.data;
 import java.time.LocalTime;
 import java.util.StringJoiner;
 
+import lombok.ToString;
+
+@ToString
 public class CurrentPrice extends Data {
 
     // //////////////////////////////////////

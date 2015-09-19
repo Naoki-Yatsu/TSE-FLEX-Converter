@@ -2,13 +2,13 @@ package ny2.flex.database.impl;
 
 import java.util.List;
 
-import ny2.flex.data.Data;
-import ny2.flex.data.MarketDepth;
-import ny2.flex.database.KdbConverter;
-
 import com.exxeleron.qjava.QTimespan;
 
-public class MarketDepthKdbConverter implements KdbConverter {
+import ny2.flex.data.MarketDepth;
+import ny2.flex.database.KdbConverter;
+import ny2.flex.database.KdbUtility;
+
+public class MarketDepthKdbConverter implements KdbConverter<MarketDepth> {
 
     // //////////////////////////////////////
     // Field
@@ -16,9 +16,6 @@ public class MarketDepthKdbConverter implements KdbConverter {
 
     private static final String TABLE_NAME = "MarketDepth";
 
-    // //////////////////////////////////////
-    // Constructor
-    // //////////////////////////////////////
 
     // //////////////////////////////////////
     // Method
@@ -29,25 +26,24 @@ public class MarketDepthKdbConverter implements KdbConverter {
         return TABLE_NAME;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <T extends Data> Object[] convert(List<T> dataList) {
-        return convertInternal((List<MarketDepth>) dataList);
+    public Object[] convert(List<MarketDepth> dataList) {
+        return convertInternal(dataList);
     }
 
     public Object[] convertInternal(List<MarketDepth> dataList) {
         int rowCount = dataList.size();
         KdbMarketDepth kdbData = new KdbMarketDepth(rowCount);
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            kdbData.addData(rowIndex, (MarketDepth) dataList.get(rowIndex));
+            kdbData.addData(rowIndex, dataList.get(rowIndex));
         }
         return kdbData.toKdbDataObject();
     }
 
     @Override
-    public Object[] convert(Data data) {
+    public Object[] convert(MarketDepth data) {
         KdbMarketDepth kdbData = new KdbMarketDepth(1);
-        kdbData.addData(0, (MarketDepth) data);
+        kdbData.addData(0, data);
         return kdbData.toKdbDataObject();
     }
 
@@ -125,8 +121,8 @@ public class MarketDepthKdbConverter implements KdbConverter {
 
         public void addData(int rowIndex, MarketDepth data) {
             // head
-            timeArray[rowIndex] = KdbConverter.kdbValueTimespan(data.getTime());
-            symArray[rowIndex] = KdbConverter.kdbValue(data.getSym());
+            timeArray[rowIndex] = KdbUtility.kdbValueTimespan(data.getTime());
+            symArray[rowIndex] = KdbUtility.kdbValue(data.getSym());
             // Best
             bidPriceArray[rowIndex] = data.getBidPrice();
             askPriceArray[rowIndex] = data.getAskPrice();
@@ -142,7 +138,7 @@ public class MarketDepthKdbConverter implements KdbConverter {
             bidNumOrdersArray[rowIndex] = data.getBidNumOrders();
             askNumOrdersArray[rowIndex] = data.getAskNumOrders();
             // Others
-            updateTypeArray[rowIndex] = KdbConverter.kdbValue(data.getUpdateType());
+            updateTypeArray[rowIndex] = KdbUtility.kdbValue(data.getUpdateType());
             updateNoArray[rowIndex] = data.getUpdateNo();
             serialNoArray[rowIndex] = data.getSerialNo();
         }

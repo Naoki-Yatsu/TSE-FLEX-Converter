@@ -13,19 +13,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+
 import ny2.flex.common.DateTimeUtility;
 import ny2.flex.data.CurrentPrice;
 import ny2.flex.data.Data;
+import ny2.flex.data.IssueInformation;
 import ny2.flex.data.MarketDepth;
 import ny2.flex.data.MarketTrade;
 import ny2.flex.fileio.CsvFileWriter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Repository;
-
-@Repository("CsvDao")
+/**
+ * Csv Dao
+ */
+//@Repository("CsvDao") -> xml
 public class CsvDao extends AbstractDao {
 
     // //////////////////////////////////////
@@ -72,6 +76,7 @@ public class CsvDao extends AbstractDao {
     private CsvFileWriter marketBestWriter;
     private CsvFileWriter marketTradeWriter;
     private CsvFileWriter currentPriceWriter;
+    private CsvFileWriter issueInformationWriter;
 
     private boolean writerInitialized = false;
 
@@ -86,8 +91,7 @@ public class CsvDao extends AbstractDao {
     @PostConstruct
     private void init() {
         logger.info("PostConstruct instance.");
-        scheduledExecutor.scheduleWithFixedDelay(new BatchFileWriteWorker(), 0, 1000, TimeUnit.MILLISECONDS);
-
+        scheduledExecutor.scheduleWithFixedDelay(new BatchFileWriteWorker(), 0, 200, TimeUnit.MILLISECONDS);
     }
 
     // //////////////////////////////////////
@@ -112,12 +116,21 @@ public class CsvDao extends AbstractDao {
         try {
             String outDir = csvOutputDir;
             if (splitDate && splitCode) {
-                outDir = csvOutputDir + File.pathSeparator + targetDate.format(DateTimeUtility.SIMPLE_DATE_FORMATTER);
+                outDir = csvOutputDir + File.separator + targetDate.format(DateTimeUtility.SIMPLE_DATE_FORMATTER);
             }
-            marketDepthWriter = new CsvFileWriter("MarketDepth", outDir, splitDate, targetDate, splitCode, outHeader, MarketDepth.csvHeader(), targetDate.format(dateFormatter) + separatorDateTIme);
-            marketBestWriter = new CsvFileWriter("MarketBest", outDir, splitDate, targetDate, splitCode, outHeader, MarketDepth.csvHeaderBestOnly(), targetDate.format(dateFormatter) + separatorDateTIme);
-            marketTradeWriter = new CsvFileWriter("MarketTrade", outDir, splitDate, targetDate, splitCode, outHeader, MarketTrade.csvHeader(), targetDate.format(dateFormatter) + separatorDateTIme);
-            currentPriceWriter = new CsvFileWriter("CurrentPrice", outDir, splitDate, targetDate, splitCode, outHeader, CurrentPrice.csvHeader(), targetDate.format(dateFormatter) + separatorDateTIme);
+            // If date and time is separated, add "date," to header
+            String headerDate = "";
+            if (StringUtils.isBlank(separatorDateTIme)) {
+                separatorDateTIme = " ";
+            } else {
+                headerDate = "date,";
+            }
+
+            marketDepthWriter = new CsvFileWriter("MarketDepth", outDir, splitDate, targetDate, splitCode, outHeader, headerDate + MarketDepth.csvHeader(), targetDate.format(dateFormatter) + separatorDateTIme);
+            marketBestWriter = new CsvFileWriter("MarketBest", outDir, splitDate, targetDate, splitCode, outHeader, headerDate + MarketDepth.csvHeaderBestOnly(), targetDate.format(dateFormatter) + separatorDateTIme);
+            marketTradeWriter = new CsvFileWriter("MarketTrade", outDir, splitDate, targetDate, splitCode, outHeader, headerDate + MarketTrade.csvHeader(), targetDate.format(dateFormatter) + separatorDateTIme);
+            currentPriceWriter = new CsvFileWriter("CurrentPrice", outDir, splitDate, targetDate, splitCode, outHeader, headerDate + CurrentPrice.csvHeader(), targetDate.format(dateFormatter) + separatorDateTIme);
+            issueInformationWriter = new CsvFileWriter("IssueInformation", outDir, splitDate, targetDate, false, outHeader, "date," + IssueInformation.csvHeader(), targetDate.format(dateFormatter) + ",");
 
             writerInitialized = true;
         } catch (IOException e) {
@@ -144,6 +157,9 @@ public class CsvDao extends AbstractDao {
         }
         if (currentPriceWriter != null) {
             currentPriceWriter.closeAll();
+        }
+        if (issueInformationWriter != null) {
+            issueInformationWriter.closeAll();
         }
     }
 
@@ -176,9 +192,10 @@ public class CsvDao extends AbstractDao {
             dataQueue.drainTo(allDataList, queueSize);
 
             // each data list
-            List<Data> marketDepthList = new ArrayList<Data>();
-            List<Data> marketTradeList = new ArrayList<Data>();
-            List<Data> currentPriceList = new ArrayList<Data>();
+            List<Data> marketDepthList = new ArrayList<>();
+            List<Data> marketTradeList = new ArrayList<>();
+            List<Data> currentPriceList = new ArrayList<>();
+            List<Data> issueInformationList = new ArrayList<>();
 
             for (Data data : allDataList) {
                 switch (data.getDataType()) {
@@ -190,6 +207,9 @@ public class CsvDao extends AbstractDao {
                         break;
                     case CurrentPrice:
                         currentPriceList.add(data);
+                        break;
+                    case IssueInformation:
+                        issueInformationList.add(data);
                         break;
                     default:
                         break;
@@ -213,10 +233,12 @@ public class CsvDao extends AbstractDao {
                 }
                 if (!marketTradeList.isEmpty() && outMarketTrade) {
                     marketTradeWriter.write(marketTradeList);
-                    ;
                 }
                 if (!currentPriceList.isEmpty() && outCurrentPrice) {
                     currentPriceWriter.write(currentPriceList);
+                }
+                if (!issueInformationList.isEmpty() && outIssueInformation) {
+                    issueInformationWriter.write(issueInformationList);
                 }
 
             } catch (Exception e) {

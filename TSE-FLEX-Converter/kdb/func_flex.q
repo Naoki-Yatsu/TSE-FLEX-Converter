@@ -14,19 +14,22 @@ MarketDepth: ([]time:`timespan$();sym:`$();bidPrice:`float$();askPrice:`float$()
 MarketBest: ([]time:`timespan$();sym:`$();bidPrice:`float$();askPrice:`float$();bidQuantity:`long$();askQuantity:`long$();updateType:`$();updateNo:`int$();serialNo:`long$());
 MarketTrade: ([]time:`timespan$();sym:`$();side:`$();price:`float$();quantity:`long$();totalQuantity:`long$();totalTurnover:`long$();updateNo:`int$();serialNo:`long$());
 CurrentPrice: ([]time:`timespan$();sym:`$();price:`float$();state:`$();updateNo:`int$();serialNo:`long$());
+IssueInformation: ([]sym:`$();exchangeCode:`int$();classificationCode:`$());
 
 // database to write to
-dbdir:`:/data/kdb/work/flex;
+dbdir: `:/data/kdb/work/flex;
 
 // sortcols of all tables
 sortcols: `sym`serialNo;
 
 // write function
-writeAllTables:{[date]
-    writeAndClear[date; "MarketDepth"];
-    writeAndClear[date; "MarketBest"];
-    writeAndClear[date; "MarketTrade"];
-    writeAndClear[date; "CurrentPrice"];
+writeAllTables: {[date]
+    writeAndClear[date;] each tables[];
+
+    /writeAndClear[date; "MarketDepth"];
+    /writeAndClear[date; "MarketBest"];
+    /writeAndClear[date; "MarketTrade"];
+    /writeAndClear[date; "CurrentPrice"];
   };
 
 //
@@ -34,10 +37,10 @@ writeAllTables:{[date]
 //
 
 // maintain a dictionary of the db partitions which have been written to by the loader
-partitions:()!();
+partitions: ()!();
 
 // function to print log info
-out:{-1(string .z.z)," ",x};
+out: {-1(string .z.z)," ",x};
 
 // write data as splayed table
 writedata: {[data; date; tablename]
@@ -70,15 +73,14 @@ setattribute:{[partition;attrcol;attribute] .[{@[x;y;z];1b};(partition;attrcol;a
 
 // set the partition attribute (sort the table if required)
 sortandsetp:{[partition;sortcols]
-    out"Sorting and setting `p# attribute in partition ",string partition;
+    out "Sorting and setting `p# attribute in partition ",string partition;
 
-    // attempt to apply an attribute.
     // the attribute should be set on the first of the sort cols
     parted:setattribute[partition;first sortcols;`p#];
 
     // if it fails, resort the table and set the attribute
     if[not parted;
-        out"Sorting table";
+        out "Sorting table";
         sorted:.[{x xasc y;1b};(sortcols;partition);{out"ERROR - failed to sort table: ",x; 0b}];
         // check if the table has been sorted
         if[sorted;

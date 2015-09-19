@@ -2,13 +2,13 @@ package ny2.flex.database.impl;
 
 import java.util.List;
 
-import ny2.flex.data.Data;
-import ny2.flex.data.MarketTrade;
-import ny2.flex.database.KdbConverter;
-
 import com.exxeleron.qjava.QTimespan;
 
-public class MarketTradeKdbConverter implements KdbConverter {
+import ny2.flex.data.MarketTrade;
+import ny2.flex.database.KdbConverter;
+import ny2.flex.database.KdbUtility;
+
+public class MarketTradeKdbConverter implements KdbConverter<MarketTrade> {
 
     // //////////////////////////////////////
     // Field
@@ -16,9 +16,6 @@ public class MarketTradeKdbConverter implements KdbConverter {
 
     private static final String TABLE_NAME = "MarketTrade";
 
-    // //////////////////////////////////////
-    // Constructor
-    // //////////////////////////////////////
 
     // //////////////////////////////////////
     // Method
@@ -29,25 +26,24 @@ public class MarketTradeKdbConverter implements KdbConverter {
         return TABLE_NAME;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <T extends Data> Object[] convert(List<T> dataList) {
-        return convertInternal((List<MarketTrade>) dataList);
+    public Object[] convert(List<MarketTrade> dataList) {
+        return convertInternal(dataList);
     }
 
     public Object[] convertInternal(List<MarketTrade> dataList) {
         int rowCount = dataList.size();
         KdbMarketTrade kdbData = new KdbMarketTrade(rowCount);
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            kdbData.addData(rowIndex, (MarketTrade) dataList.get(rowIndex));
+            kdbData.addData(rowIndex, dataList.get(rowIndex));
         }
         return kdbData.toKdbDataObject();
     }
 
     @Override
-    public Object[] convert(Data data) {
+    public Object[] convert(MarketTrade data) {
         KdbMarketTrade kdbData = new KdbMarketTrade(1);
-        kdbData.addData(0, (MarketTrade) data);
+        kdbData.addData(0, data);
         return kdbData.toKdbDataObject();
     }
 
@@ -103,10 +99,10 @@ public class MarketTradeKdbConverter implements KdbConverter {
 
         public void addData(int rowIndex, MarketTrade data) {
             // head
-            timeArray[rowIndex] = KdbConverter.kdbValueTimespan(data.getTime());
-            symArray[rowIndex] = KdbConverter.kdbValue(data.getSym());
+            timeArray[rowIndex] = KdbUtility.kdbValueTimespan(data.getTime());
+            symArray[rowIndex] = KdbUtility.kdbValue(data.getSym());
             // Best
-            sideArray[rowIndex] = KdbConverter.kdbValue(data.getSide());
+            sideArray[rowIndex] = KdbUtility.kdbValue(data.getSide());
             priceArray[rowIndex] = data.getPrice();
             quantityArray[rowIndex] = data.getQuantity();
             totalQuantityArray[rowIndex] = data.getTotalQuantity();

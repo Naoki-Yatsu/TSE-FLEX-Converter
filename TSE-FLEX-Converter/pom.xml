@@ -92,11 +92,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>qJava</groupId>
+            <groupId>exxeleron</groupId>
             <artifactId>qJava</artifactId>
-            <version>2.1.0</version>
+            <version>2.2.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/lib/qJava-2.1.0.jar</systemPath>
+            <systemPath>${basedir}/lib/qJava-2.2.0.jar</systemPath>
         </dependency>
 
         <!-- For Test -->

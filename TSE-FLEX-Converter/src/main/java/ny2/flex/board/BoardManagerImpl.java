@@ -6,16 +6,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import ny2.flex.data.Data;
 import ny2.flex.data.MarketDepth;
 import ny2.flex.database.OutputDao;
 import ny2.flex.message.Message;
 import ny2.flex.message.MessageBundle;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 @Component
 public class BoardManagerImpl implements BoardManager {
@@ -25,7 +24,6 @@ public class BoardManagerImpl implements BoardManager {
     // //////////////////////////////////////
 
     @Autowired
-    @Qualifier("CsvDao")
     private OutputDao outputDao;
 
     @Value("${board.maxdepth}")
@@ -77,7 +75,7 @@ public class BoardManagerImpl implements BoardManager {
 
         // create board is not exist
         if (board == null) {
-            board = new Board(issueCode, bundle.getIssueClassificationType(), maxDepth, bundle.isIntegerPrice(), removeContinuousExecutionMarketDepth);
+            board = new Board(issueCode, bundle.getExchangeCode(), bundle.getIssueClassificationType(), maxDepth, bundle.isIntegerPrice(), removeContinuousExecutionMarketDepth);
             boardMap.put(issueCode, board);
         }
 
@@ -133,6 +131,14 @@ public class BoardManagerImpl implements BoardManager {
             }
         }
         outputDao.insertList(dataList);
+
+        // create Issue information
+        List<Data> informationList = new ArrayList<>(boardMap.size());
+        for (Board board : boardMap.values()) {
+            informationList.add(board.createIssueInformation());
+        }
+        informationList.sort((o1, o2) -> o1.getSym().compareTo(o2.getSym()));
+        outputDao.insertList(informationList);
 
         // init all board
         initialize();

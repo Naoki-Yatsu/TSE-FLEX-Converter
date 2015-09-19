@@ -2,19 +2,18 @@ package ny2.flex.app;
 
 import java.io.File;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import ny2.flex.board.BoardManager;
 import ny2.flex.common.SystemUtility;
 import ny2.flex.database.OutputDao;
 import ny2.flex.fileio.FlexFileReader;
 import ny2.flex.message.MessageBundle;
 import ny2.flex.message.MessageConverter;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 @Component
 public class FlexConverterImpl implements FlexConverter {
@@ -29,7 +28,6 @@ public class FlexConverterImpl implements FlexConverter {
     private BoardManager boardManager;
 
     @Autowired
-    @Qualifier("CsvDao")
     private OutputDao outputDao;
 
     @Value("${file.read.size}")
@@ -49,7 +47,7 @@ public class FlexConverterImpl implements FlexConverter {
 
     public void startConvert(File[] targetFiles) {
         try {
-            // Read files
+            // Read files, file is separated by date
             for (File file : targetFiles) {
 
                 FlexFileReader fileReader = new FlexFileReader(file, fileReadSize);

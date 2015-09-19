@@ -3,9 +3,10 @@ package ny2.flex.data;
 import java.time.LocalTime;
 import java.util.StringJoiner;
 
+import lombok.ToString;
 import ny2.flex.board.UpdateType;
-import ny2.flex.message.IssueClassificationType;
 
+@ToString
 public class MarketDepth extends Data {
 
     // //////////////////////////////////////
@@ -14,7 +15,6 @@ public class MarketDepth extends Data {
 
     private LocalTime time;
     private String sym;
-    private IssueClassificationType classification;
 
     // Best Bid/Ask
     private double bidPrice;
@@ -148,6 +148,7 @@ public class MarketDepth extends Data {
         }
     }
 
+
     // //////////////////////////////////////
     // Getters and Setters
     // //////////////////////////////////////
@@ -163,12 +164,6 @@ public class MarketDepth extends Data {
     }
     public void setSym(String sym) {
         this.sym = sym;
-    }
-    public IssueClassificationType getClassification() {
-        return classification;
-    }
-    public void setClassification(IssueClassificationType classification) {
-        this.classification = classification;
     }
     public double getBidPrice() {
         return bidPrice;

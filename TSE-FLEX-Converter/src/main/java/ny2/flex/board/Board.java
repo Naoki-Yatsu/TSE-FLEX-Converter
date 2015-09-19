@@ -9,11 +9,15 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.TreeMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import lombok.ToString;
 import ny2.flex.common.BidAsk;
 import ny2.flex.common.Side;
 import ny2.flex.data.CurrentPrice;
 import ny2.flex.data.Data;
+import ny2.flex.data.IssueInformation;
 import ny2.flex.data.MarketDepth;
 import ny2.flex.data.MarketTrade;
 import ny2.flex.message.IssueClassificationType;
@@ -22,9 +26,6 @@ import ny2.flex.message.individual.CurrentPrice1P;
 import ny2.flex.message.individual.QuoteQBQS;
 import ny2.flex.message.individual.TradingVolumeVL;
 import ny2.flex.message.individual.TurnoverVA;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @ToString
 public class Board {
@@ -37,6 +38,9 @@ public class Board {
 
     /** Issue Code of board */
     private final String issueCode;
+
+    /** Exchange Code */
+    private final int exchangeCode;
 
     /** Issue Classification */
     private final IssueClassificationType issueClassificationType;
@@ -94,8 +98,9 @@ public class Board {
     // Constructor
     // //////////////////////////////////////
 
-    public Board(String issueCode, IssueClassificationType issueClassificationType, int maxDepth, boolean isIntegerPrice, boolean removeContinuousExecutionMarketDepth) {
+    public Board(String issueCode, int exchangeCode, IssueClassificationType issueClassificationType, int maxDepth, boolean isIntegerPrice, boolean removeContinuousExecutionMarketDepth) {
         this.issueCode = issueCode;
+        this.exchangeCode = exchangeCode;
         this.issueClassificationType = issueClassificationType;
         this.maxDepthOutput = maxDepth;
         this.isIntegerPrice = isIntegerPrice;
@@ -484,10 +489,8 @@ public class Board {
      */
     private MarketDepth createMarketDepth() {
         MarketDepth marketDepth = new MarketDepth();
-
         marketDepth.setTime(updateTime);
         marketDepth.setSym(issueCode);
-        marketDepth.setClassification(issueClassificationType);
 
         // Best
         Optional<BoardRow> bestBid = getBestBidRow();
@@ -589,6 +592,14 @@ public class Board {
             marketDepth.setAskQuantities(quantities);
             marketDepth.setAskNumOrders(numOrders);
         }
+    }
+
+    public IssueInformation createIssueInformation() {
+        IssueInformation issueInformation = new IssueInformation();
+        issueInformation.setSym(issueCode);
+        issueInformation.setExchangeCode(exchangeCode);
+        issueInformation.setIssueClassificationType(issueClassificationType);
+        return issueInformation;
     }
 
     // //////////////////////////////////////

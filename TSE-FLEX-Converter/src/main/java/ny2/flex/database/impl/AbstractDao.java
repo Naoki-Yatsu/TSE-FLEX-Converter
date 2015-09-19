@@ -5,13 +5,13 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import ny2.flex.data.Data;
-import ny2.flex.database.MarketBestManager;
-import ny2.flex.database.OutputDao;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+
+import ny2.flex.data.Data;
+import ny2.flex.database.MarketBestManager;
+import ny2.flex.database.OutputDao;
 
 public abstract class AbstractDao implements OutputDao {
 
@@ -34,6 +34,9 @@ public abstract class AbstractDao implements OutputDao {
 
     @Value("${output.CurrentPrice}")
     protected boolean outCurrentPrice;
+
+    @Value("${output.IssueInformation}")
+    protected boolean outIssueInformation;
 
     /** current target date */
     protected LocalDate targetDate;
