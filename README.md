@@ -9,6 +9,13 @@ See Tokyo Stock Exchnage page...
 - English - http://www.jpx.co.jp/english/markets/paid-info-equities/historical/01.html
 - Japanese - http://www.jpx.co.jp/markets/paid-info-equities/historical/01.html
 
+### *Caution
+
+This is for arrowhead 1. In order to change for arrowhead 2...
+
+- Chanage timestamp field length
+- Add StatusUpdate event
+
 ## How to Use
 
 
